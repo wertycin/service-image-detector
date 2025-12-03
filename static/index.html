@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Detector</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #00d9ff;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .input-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #888;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d9ff;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+        }
+
+        input[type="text"]::placeholder {
+            color: #555;
+        }
+
+        .divider {
+            text-align: center;
+            color: #555;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+
+        .file-drop {
+            border: 2px dashed rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .file-drop:hover,
+        .file-drop.dragover {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .file-drop input {
+            display: none;
+        }
+
+        .file-drop-text {
+            color: #666;
+        }
+
+        .file-drop-text span {
+            color: #00d9ff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+            border: none;
+            border-radius: 8px;
+            color: #0f0f23;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .result-section.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        .detections {
+            margin-top: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .detections h3 {
+            color: #00d9ff;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detection-item:last-child {
+            border-bottom: none;
+        }
+
+        .detection-label {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .detection-confidence {
+            color: #4ecdc4;
+        }
+
+        .detection-coords {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .error {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #ff6b6b;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #00d9ff;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 217, 255, 0.2);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .preview {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        .preview-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Image Detector</h1>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label>URL изображения</label>
+                <input type="text" id="urlInput" placeholder="https://example.com/image.jpg">
+            </div>
+
+            <div class="divider">или</div>
+
+            <div class="file-drop" id="fileDrop">
+                <input type="file" id="fileInput" accept="image/*">
+                <div class="file-drop-text">
+                    Перетащите изображение сюда или <span>выберите файл</span>
+                </div>
+            </div>
+
+            <div class="preview" id="preview" style="display: none;">
+                <img id="previewImg" src="" alt="Preview">
+                <div class="preview-label" id="previewLabel"></div>
+            </div>
+
+            <button class="btn" id="detectBtn" style="margin-top: 1.5rem;">
+                Детектировать
+            </button>
+
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <div>Обработка...</div>
+            </div>
+
+            <img class="result-image" id="resultImage" src="" alt="Result" style="display: none;">
+
+            <div class="detections" id="detections" style="display: none;">
+                <h3>Обнаружено объектов: <span id="detectionsCount">0</span></h3>
+                <div id="detectionsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const fileInput = document.getElementById('fileInput');
+        const fileDrop = document.getElementById('fileDrop');
+        const detectBtn = document.getElementById('detectBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultImage = document.getElementById('resultImage');
+        const detections = document.getElementById('detections');
+        const detectionsList = document.getElementById('detectionsList');
+        const detectionsCount = document.getElementById('detectionsCount');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('previewImg');
+        const previewLabel = document.getElementById('previewLabel');
+
+        let selectedFile = null;
+
+        // File drop handlers
+        fileDrop.addEventListener('click', () => fileInput.click());
+
+        fileDrop.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDrop.classList.add('dragover');
+        });
+
+        fileDrop.addEventListener('dragleave', () => {
+            fileDrop.classList.remove('dragover');
+        });
+
+        fileDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDrop.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Выберите файл изображения');
+                return;
+            }
+            selectedFile = file;
+            urlInput.value = '';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewLabel.textContent = file.name;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        urlInput.addEventListener('input', () => {
+            if (urlInput.value) {
+                selectedFile = null;
+                preview.style.display = 'none';
+            }
+        });
+
+        detectBtn.addEventListener('click', async () => {
+            hideError();
+
+            const url = urlInput.value.trim();
+
+            if (!url && !selectedFile) {
+                showError('Введите URL или выберите файл');
+                return;
+            }
+
+            let requestBody;
+
+            if (url) {
+                requestBody = { url };
+            } else {
+                const base64 = await fileToBase64(selectedFile);
+                requestBody = { bytes: base64.split(',')[1] };
+            }
+
+            detectBtn.disabled = true;
+            resultSection.classList.add('visible');
+            loading.style.display = 'block';
+            resultImage.style.display = 'none';
+            detections.style.display = 'none';
+
+            try {
+                const response = await fetch('/forward_with_show', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || 'Ошибка сервера');
+                }
+
+                const data = await response.json();
+
+                resultImage.src = 'data:image/jpeg;base64,' + data.image;
+                resultImage.style.display = 'block';
+
+                detectionsCount.textContent = data.bboxes.length;
+                detectionsList.innerHTML = data.bboxes.map(bbox => `
+                    <div class="detection-item">
+                        <div>
+                            <span class="detection-label">${bbox.label}</span>
+                            <span class="detection-confidence">${(bbox.confidence * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="detection-coords">
+                            (${bbox.top_left.x.toFixed(0)}, ${bbox.top_left.y.toFixed(0)}) →
+                            (${bbox.bottom_right.x.toFixed(0)}, ${bbox.bottom_right.y.toFixed(0)})
+                        </div>
+                    </div>
+                `).join('');
+                detections.style.display = 'block';
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+                detectBtn.disabled = false;
+            }
+        });
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function showError(msg) {
+            error.textContent = msg;
+            error.classList.add('visible');
+        }
+
+        function hideError() {
+            error.classList.remove('visible');
+        }
+    </script>
+</body>
+</html>
+
