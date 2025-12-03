@@ -10,9 +10,9 @@ def main():
     print(f"Downloading original image from {IMAGE_URL}...")
     response = httpx.get(IMAGE_URL)
     response.raise_for_status()
-    with open("data/input.png", "wb") as f:
+    with open("examples/data/input.png", "wb") as f:
         f.write(response.content)
-    print("Saved original image to data/input.png")
+    print("Saved original image to examples/data/input.png")
 
     # Отправляем запрос в сервис детекции
     print(f"Sending request to {SERVICE_URL}...")
@@ -34,9 +34,9 @@ def main():
     # Декодируем и сохраняем итоговое изображение
     image_base64 = result["image"]
     image_bytes = base64.b64decode(image_base64)
-    with open("data/output.png", "wb") as f:
+    with open("examples/data/output.png", "wb") as f:
         f.write(image_bytes)
-    print("\nSaved annotated image to data/output.png")
+    print("\nSaved annotated image to examples/data/output.png")
 
 
 if __name__ == "__main__":
